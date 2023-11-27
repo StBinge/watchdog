@@ -1,13 +1,16 @@
-import datetime,time
+import datetime
+import time
 import crontab as Crontab
-import subprocess,threading
+import subprocess
+import threading
 from enum import Enum
 
+
 class TaskState(Enum):
-    Idle=1
-    Runing=2
-    Completed=3
-    Error=4
+    Idle = 1
+    Runing = 2
+    Completed = 3
+    Error = 4
 
 # class TaskInfo:
 #     def __init__(self,task:'Task') -> None:
@@ -16,21 +19,20 @@ class TaskState(Enum):
 #         else:
 
 
-
 class Task:
-    def __init__(self,tid:int,cmd_args:list[str],cron:str,name=str) -> None:
+    def __init__(self, id: int, name: str, command: str, cron: str) -> None:
         # self.task_id=int(datetime.datetime().now().timestamp())
-        self.id=tid
-        self.cmd_args=cmd_args
-        self.cron=cron
-        self.crontab=Crontab.parse(cron)
-        self.stdout=''
-        self.stderr=''
-        self.state=TaskState.Idle
-        self.next_time=str(self.crontab.next)
-        self.prev_time=''
-        self.next_run_timestamp=self.crontab.next.timestamp()
-    
+        self.id = id
+        self.name = name
+        self.command = command
+        self.cron = cron
+        self.crontab = Crontab.parse(cron)
+        self.result = ''
+        # self.error=''
+        self.state = TaskState.Idle
+        self.next_timestamp = next(self.crontab.next()).timestamp()
+        self.last_timestamp = -1
+
     # def calc_next_time(self,prev_timestamp:int):
     #     # cur_time=time.time()
     #     while True:
@@ -38,43 +40,48 @@ class Task:
     #         if nxt<=prev_timestamp:
     #             continue
 
-
-    def _execute(self):
+    def execute_sync(self):
         '''执行任务,并更新下一次运行时间
         '''
-        print(f'Executing task[{self.id}]:'+self.cmd_args)
-        self.state=TaskState.Runing
-        self.stdout, self.stderr = subprocess.Popen(self.cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True).communicate()
-        self.prev_time=str(datetime.datetime.now())
-        self.next_run_timestamp=self.crontab.next.timestamp()
-        self.next_time=str(datetime.datetime.fromtimestamp(self.next_run_timestamp))
-        if self.stderr:
-            self.state=TaskState.Error
+        print(f'Executing task[{self.id}]:'+self.command)
+        self.state = TaskState.Runing
+        stdout, stderr = subprocess.Popen(
+            self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True).communicate()
+        now=datetime.datetime.now()
+        self.last_timestamp = now.timestamp()
+        for time in self.crontab.next():
+            if time.timestamp()<self.last_timestamp:
+                continue
+            self.next_timestamp=time.timestamp()
+            break
+        # self.next_timestamp=str(datetime.datetime.fromtimestamp(self.next_run_timestamp))
+        self.state = TaskState.Idle
+        if stderr:
+            self.result = stderr
         else:
-            self.state=TaskState.Completed
-        print(f'Task[{self.id}] Executed:\n',str(self.info()))
-    
-    def execute(self):
-        thread=threading.Thread(target=self._execute)
-        thread.start()
-    
-    def info(self):
-        ret={}
-        ret['id']=self.id
-        if self.state==TaskState.Runing:
-            ret['state']='running'
-            ret['detail']=''
-        elif self.state==TaskState.Idle:
-            ret['state']='idle'
-            ret['detail']=''
-        elif self.state==TaskState.Completed:
-            ret['state']='ok'
-            ret['detail']=self.stdout
-        elif self.state==TaskState.Error:
-            ret['state']='error'
-            ret['detail']=self.stderr
-        else:
-            ret['state']='unknown'
-            ret['detail']=f'unknow task state [{self.state}]'
+            self.result = stdout
+        print(f'Task[{self.id}] Executed:\n', str(self.info()))
 
+    def execute_async(self):
+        thread = threading.Thread(target=self.execute_sync)
+        thread.start()
+
+    def info(self):
+        ret = {}
+        info_keys = ['id', 'name', 'command', 'cron', 'result']
+        for key in info_keys:
+            ret[key] = self.__dict__.get(key, None)
+
+        def convert_timestamp(stamp):
+            if stamp is None or stamp < 0:
+                return ''
+            return str(datetime.datetime.fromtimestamp(int(stamp)))
+
+        map_keys = [
+            ['next_timestamp', 'next_time', convert_timestamp],
+            ['last_timestamp', 'last_time', convert_timestamp],
+            ['state', 'state', lambda x:x.name],
+        ]
+        for key, dst_key, convertor in map_keys:
+            ret[dst_key] = convertor(self.__dict__.get(key, None))
         return ret

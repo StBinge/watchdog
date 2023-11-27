@@ -33,8 +33,7 @@ class Crontab:
     day_of_month_asterisk: bool
     day_of_week_asterisk: bool
 
-    @property
-    def next(self) -> datetime.datetime:
+    def next(self,start:datetime.datetime=None):
         """
         Return the next time at which this crontab should execute
 
@@ -42,7 +41,7 @@ class Crontab:
         >>> crontab.next
         datetime.datetime(...)
         """
-        return next(self.date_times())
+        yield from self.date_times()
 
     def date_times(
         self, start: Optional[datetime.datetime] = None
@@ -217,3 +216,8 @@ def _try_int(v, max_value: int, min_value: int) -> int:
 def _day_of_week_to_cron(day_of_week: int):
     """Convert Python day-of-week (0 = Monday) to Cron (0 = Sunday)"""
     return (day_of_week + 1) % 7
+
+
+if __name__ == '__main__':
+    cron=parse('*/2 * * * *')
+    pass

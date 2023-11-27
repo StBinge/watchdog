@@ -8,6 +8,7 @@ Base = declarative_base()
 class TaskData(Base):
     __tablename__ = 'tasks'
     id = Column(Integer, Sequence('task_id_seq'), primary_key=True)
+    name = Column(String)
     cmd = Column(String)
     cron = Column(String)
 
@@ -18,10 +19,10 @@ class TaskData(Base):
 class EnvItem(Base):
     __tablename__ = 'envs'
     key = Column(String, Sequence('env_key_seq'), primary_key=True)
-    val = Column(String)
+    value = Column(String)
 
     def __repr__(self):
-        return f"Env(key={self.key}, val='{self.val}')"
+        return f"Env(key={self.key}, val='{self.value}')"
 
 
 class Database:
@@ -41,8 +42,8 @@ class Database:
         # if exc_type:
         #     raise exc_type(exc_val)
 
-    def add_task(self, cmd, cron):
-        new_task = TaskData(cmd=cmd, cron=cron)
+    def add_task(self, name, cmd, cron):
+        new_task = TaskData(name=name, cmd=cmd, cron=cron)
         with self as session:
             session.add(new_task)
             session.commit()
@@ -56,17 +57,26 @@ class Database:
         with self as session:
             return session.query(TaskData).filter_by(id=id).first()
 
-    def update_task(self, id, cmd=None, cron=None):
+    def update_task(self, id, name=None, cmd=None, cron=None):
         with self as session:
             task = session.query(TaskData).filter_by(id=id).first()
             if not task:
                 raise Exception('task not found')
-            if cmd:
+            changed = False
+            if name and name != task.name:
+                task.name = name
+                changed = True
+            if cmd and cmd != task.cmd:
                 task.cmd = cmd
-            if cron:
+                changed = True
+            if cron and cron != task.cron:
                 task.cron = cron
-            session.commit()
-            return task
+                changed = True
+            if changed:
+                session.commit()
+                return task
+            else:
+                return None
 
     def delete_task(self, id):
         with self as session:
@@ -79,11 +89,11 @@ class Database:
             session.commit()
 
     def add_env(self, key, val):
-        item = EnvItem(key=key, val=val)
+        item = EnvItem(key=key, value=val)
         with self as session:
             session.add(item)
             session.commit()
-            return {key: val}
+            return {'key':key,'value':val}
 
     def delete_env(self, key):
         with self as s:
@@ -93,14 +103,16 @@ class Database:
 
     def add_or_update_env(self, key, val):
         with self as session:
-            item = session.query(EnvItem()).filter_by(key=key).first()
+            item = session.query(EnvItem).filter_by(key=key).first()
             if not item:
-                item = EnvItem(key=key, val=val)
+                item = EnvItem(key=key, value=val)
                 session.add(item)
-            else:
-                item.val = val
-            session.commit()
-            return {key: val}
+                session.commit()
+            elif item.value != val:
+                item.value = val
+                session.commit()
+            return {'key':key,'value':val}
+
 
     def get_all_envs(self) -> list[EnvItem]:
         with self as session:

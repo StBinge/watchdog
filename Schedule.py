@@ -20,22 +20,26 @@ class Schedule:
 
     def _load_task(self):
         for task in db.get_all_tasks():
-            self.tasks[task.id] = Task(task.id, task.cmd, task.cron)
+            self.tasks[task.id] = Task(task.id, task.name, task.cmd, task.cron)
 
     def _load_envs(self):
-        for key, val in db.get_all_envs():
+        for item in db.get_all_envs():
+            key, val = item.key, item.value
             self.envs[key] = val
             os.environ[key] = val
             print('Set Env:', key, val)
 
-    def add_task(self, cmd: str, cron: str):
-        tid = db.add_task(cmd, cron)
-        task = Task(tid, cmd, cron)
+    def add_task(self, name: str, cmd: str, cron: str):
+        tid = db.add_task(name, cmd, cron)
+        task = Task(tid, name, cmd, cron)
         self.tasks[tid] = task
         return task
 
-    def update_task(self, tid: int, cmd, cron):
-        db.update_task(tid, cmd, cron)
+    def update_task(self, tid: int, name, cmd, cron):
+        task = db.update_task(tid, name, cmd, cron)
+        if task:
+            self.tasks[tid] = Task(tid, name, cmd, cron)
+        return self.tasks[tid]
 
     def remove_task(self, tid: int):
         db.delete_task(tid)
@@ -49,20 +53,21 @@ class Schedule:
         db.add_or_update_env(key, val)
         self.envs[key] = val
         os.environ[key] = val
-        return {key:val}
+        return {'key':key,'value':val}
 
     def remove_env(self, key):
         db.delete_env(key)
         del self.evn[key]
         del os.environ[key]
+        return True
 
     def _run(self):
         cur_timestamp = time.time()
         print(f'{datetime.datetime.now()}:running loops...')
         for task in self.tasks.values():
-            if cur_timestamp > task.next_run_timestamp:
+            if cur_timestamp > task.next_timestamp:
                 # print('Execute:'+task.cmd_args)
-                task.execute_async()
+                task.execute_sync()
         if self.stopped:
             return
         time.sleep(self.interval)
@@ -78,4 +83,3 @@ class Schedule:
         self.stopped = True
         self.thread.join()
         print('Schedule Stopped!')
-
