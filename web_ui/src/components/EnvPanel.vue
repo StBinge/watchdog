@@ -1,18 +1,30 @@
 <script setup lang="ts">
 import {ref,onMounted,onActivated} from 'vue'
-import {Env,set_env,get_envs,delete_env} from '../Env'
+import {Env,set_env,get_envs,delete_env,EmptyENV} from '../Env'
 
 const envs=ref<Env[]>([])
-const new_key=ref<HTMLInputElement>()
-const new_value=ref<HTMLInputElement>()
+const new_env=ref<Env>(EmptyENV)
+// const new_key=ref<HTMLInputElement>()
+// const new_value=ref<HTMLInputElement>()
 async function add_env() {
-    const key=new_key.value?.value
-    const value=new_value.value?.value
-    if ( key&& value) {
-        const new_env=await set_env(key,value)
-        console.debug('Add new env:',new_env)
-        if (new_env)envs.value.push(new_env)
+    const key=new_env.value.key
+    const value=new_env.value.value
+    if ( !key || !value) {
+        alert('The key and value of Env can not be empty!')   
+        return     
     }
+    const idx=envs.value.findIndex(item=>item.key==key)
+    if (idx>=0) {
+        alert(`Key[${key}] has existed!`)
+        return
+    }
+    const ret=await set_env(key,value)
+        console.debug('Add new env:',ret)
+        if (ret){
+            envs.value.push(ret)
+            new_env.value.key=''
+            new_env.value.value=''
+        }
 }
 async function get_all_envs() {
     const res=await get_envs()
@@ -32,7 +44,7 @@ async function remove_env(key:string) {
 }
 
 async function update_env(key:string){
-    const new_value=prompt('Input new value:')
+    const new_value=prompt(`Input new value for [${key}]:`)
     if (new_value) {
         const res=await set_env(key,new_value)
         if (res) {
@@ -69,9 +81,9 @@ onActivated(async()=>{
     </div>
     <div class="panel-footer">
         <label for="env-key">KEY:</label>
-        <input class="panel-input" id="env-key" type="text" ref="new_key">
+        <input class="panel-input" id="env-key" type="text" v-model="new_env.key">
         <label for="env-value">VALUE:</label>
-        <input id="env-value" type="text" class="panel-input" ref="new_value">
+        <input id="env-value" type="text" class="panel-input" v-model="new_env.value">
         <span class="btn" @click="add_env">Add</span>
         <!-- <span class="btn">Refresh</span> -->
     </div>

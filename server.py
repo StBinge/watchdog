@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from Schedule import Schedule
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 class NewTaskItem(BaseModel):
     name:str
@@ -12,9 +14,13 @@ class NewEnvItem(BaseModel):
     key:str
     value:str
 
+Base_Dir=Path(__file__).parent
+static_dir=Base_Dir/'web_ui/dist'
 
 
 app = FastAPI()
+app.mount('/assets',StaticFiles(directory=static_dir/'assets'),name='assets')
+
 schedule = Schedule(10)
 
 
@@ -24,6 +30,11 @@ def stop_schedule():
 
 
 app.add_event_handler('shutdown', stop_schedule)
+
+@app.get('/')
+async def index():
+    index_path=static_dir/'index.html'
+    return FileResponse(index_path)
 
 @app.get('/tasks')
 async def get_all_tasks():

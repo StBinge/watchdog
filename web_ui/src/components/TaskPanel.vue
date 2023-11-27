@@ -41,7 +41,13 @@ async function delete_selected_task(tid:number){
     tasks.value.splice(idx,1)
   } 
 }
-
+function task_added(task:TaskInfo){
+  tasks.value.push(task)
+}
+function task_updated(task:TaskInfo){
+  const idx=tasks.value.findIndex(item=>item.id==task.id)
+  tasks.value[idx]=task
+}
 </script>
 
 <template>
@@ -71,7 +77,7 @@ async function delete_selected_task(tid:number){
       <span class="btn" @click="add_new_task">Add</span>
       <span class="btn" @click="refresh_all_tasks">Refresh</span>
     </div>
-    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel" :taskid="selected_task_id"></TaskInfoModal>
+    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel" :taskid="selected_task_id" @added="task_added" @updated="task_updated"></TaskInfoModal>
   </div>
 </template>
 

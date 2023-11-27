@@ -57,7 +57,7 @@ class Schedule:
 
     def remove_env(self, key):
         db.delete_env(key)
-        del self.evn[key]
+        del self.envs[key]
         del os.environ[key]
         return True
 

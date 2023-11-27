@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, onMounted, ref,defineEmits, computed } from 'vue';
+import { onMounted, ref,defineEmits, computed } from 'vue';
 import { get_task, add_or_update_task, TaskInfo, EmptyTask } from '../task';
 
 const props = defineProps<{
@@ -8,6 +8,8 @@ const props = defineProps<{
 
 const emits=defineEmits<{
   (e:'close'):void,
+  (e:'added',data:TaskInfo):void,
+  (e:'updated',data:TaskInfo):void,
 }>()
 // const panel=ref<HTMLElement>()
 const task = ref<TaskInfo>(EmptyTask)
@@ -30,13 +32,15 @@ async function add_new_task() {
   const new_task = await add_or_update_task(-1,task.value.name, task.value.command, task.value.cron)
   if (new_task){
     task.value=new_task
+    emits('added',new_task)
   }
 }
 
 async function update_task() {
-  const res=await add_or_update_task(task.value.id,task.value.name,task.value.command,task.value.cron)
-  if (res) {
-    task.value=res
+  const updated_task=await add_or_update_task(task.value.id,task.value.name,task.value.command,task.value.cron)
+  if (updated_task) {
+    task.value=updated_task
+    emits('updated',updated_task)
   }
 }
 

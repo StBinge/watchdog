@@ -4,7 +4,7 @@ import EnvPanel from './components/EnvPanel.vue';
 import TaskPanel from './components/TaskPanel.vue'
 
 
-const active_menu_idx=ref(2)
+const active_menu_idx=ref(1)
 const panel_names=[TaskPanel,EnvPanel,'SettingsPanel']
 const active_panel_name=computed(()=>panel_names[active_menu_idx.value-1])
 const menu_item_click=(e:MouseEvent)=>{

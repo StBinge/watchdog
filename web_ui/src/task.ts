@@ -22,7 +22,10 @@ export const EmptyTask:TaskInfo={
 }
 
 export async function get_task(id:number):Promise<TaskInfo>{
-    const api='/api/task?id='+id
+    let api='/task?id='+id
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res=await fetch(api)
     if (res.ok) {
         const task= await res.json() as TaskInfo
@@ -35,7 +38,10 @@ export async function get_task(id:number):Promise<TaskInfo>{
 }
 
 export async function get_all_tasks():Promise<TaskInfo[]>{
-    const api='/api/tasks'
+    let api='/tasks'
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res=await fetch(api)
     if (res.ok) {
         const tasks=await res.json() as TaskInfo[]
@@ -48,7 +54,10 @@ export async function get_all_tasks():Promise<TaskInfo[]>{
 }
 
 export async function add_or_update_task(tid:number,name:string,command:string,cron:string) {
-    let api='/api/task'
+    let api='/task'
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     if (tid>=0) {
         api+='?id='+tid
     }
@@ -74,7 +83,10 @@ export async function add_or_update_task(tid:number,name:string,command:string,c
 }
 
 export async function run_task(taskid:number) {
-    const api='/api/execute?id='+taskid
+    let api='/execute?id='+taskid
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res= await fetch(api)
     if (res.ok) {
         alert('Task is running.')
@@ -85,7 +97,10 @@ export async function run_task(taskid:number) {
 }
 
 export async function delete_task(tid:number) {
-    const api='/api/task?id='+tid
+    let api='/task?id='+tid
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res=await fetch(api,{
         method:'DELETE'
     })

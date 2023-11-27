@@ -3,8 +3,16 @@ export interface Env{
     value:string
 }
 
+export const EmptyENV={
+    key:'',
+    value:'',
+}
+
 export async function set_env(key:string,value:string) {
-    const api='/api/env'
+    let api='/env'
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const data={
         key:key,
         value:value,
@@ -26,7 +34,10 @@ export async function set_env(key:string,value:string) {
 }
 
 export async function get_envs() {
-    const api='/api/env'
+    let api='/env'
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res=await fetch(api)
     if (res.ok) {
         return await res.json() as Env[]
@@ -38,7 +49,10 @@ export async function get_envs() {
 }
 
 export async function delete_env(key:string) {
-    const api='/api/env?key='+key
+    let api='/env?key='+key
+    if (import.meta.env.DEV) {
+        api='/api'+api
+    }
     const res=await fetch(api,{
         method:"DELETE"
     })
