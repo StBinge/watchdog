@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref,defineEmits, computed } from 'vue';
-import { get_task, add_or_update_task, TaskInfo, EmptyTask } from '../task';
+import { get_task, add_or_update_task, TaskInfo, EmptyTask,run_task,TaskState} from '../task';
 
 const props = defineProps<{
-  taskid: number
+  task: TaskInfo
 }>()
 
 const emits=defineEmits<{
@@ -48,15 +48,23 @@ async function refresh_task_info(){
   const res=await get_task(task.value.id)
   if (res){
     task.value=res
+    emits('updated',res)
   }
 }
 
+async function run_task_now(id:number){
+  const res=await run_task(id)
+  if (res) {
+    task.value.state=TaskState.Running
+    emits('updated',task.value)
+  }
+}
 
 onMounted(async () => {
-  if (props.taskid >= 0) {
-    task.value = await get_task(props.taskid)
-  }
-
+  // if (props.taskid >= 0) {
+  //   task.value = await get_task(props.taskid)
+  // }
+  task.value=props.task
 })
 
 function close_panel(){
@@ -103,7 +111,7 @@ function close_panel(){
         <span v-if="is_new_task" class="btn" @click="add_new_task">Add</span>
         <span v-else class="btn" @click="update_task">Update</span>
         <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span>
-        <!-- <span class="btn warning" @click="close_panel">Close</span> -->
+        <span class="btn" @click="run_task_now(task.id)">Run</span>
       </p>
       <span class="corner-btn" @click="close_panel">❌</span>
     </div>

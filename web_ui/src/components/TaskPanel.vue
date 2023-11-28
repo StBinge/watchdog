@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref,onMounted ,onActivated} from 'vue'
-import { get_all_tasks,TaskInfo,run_task,delete_task} from '../task';
+import { get_all_tasks,TaskInfo,run_task,delete_task, EmptyTask,auto_update_task_info} from '../task';
 import TaskInfoModal from './TaskInfoModal.vue';
 
-const selected_task_id=ref(-1)
+const selected_task=ref<TaskInfo>(EmptyTask)
 const tasks=ref<TaskInfo[]>([])
 
 onMounted(async ()=>{
   await refresh_all_tasks()
+  auto_update_task_info(tasks)
 })
 onActivated(async()=>{
   await refresh_all_tasks()
@@ -15,7 +16,7 @@ onActivated(async()=>{
 const show_info_panel=ref(false)
 
 function add_new_task(){
-  selected_task_id.value=-1
+  selected_task.value=EmptyTask
   show_info_panel.value=true
 }
 
@@ -26,9 +27,9 @@ async function refresh_all_tasks() {
   }
 }
 
-async function check_task(taskid:number){
+async function check_task_info(task:TaskInfo){
   // console.debug(taskid)
-  selected_task_id.value=taskid
+  selected_task.value=task
   show_info_panel.value=true
 }
 
@@ -67,7 +68,7 @@ function task_updated(task:TaskInfo){
         <span class="task-value">{{ task.next_time }}</span>
         <span class="task-value">{{ task.last_time }}</span>
         <p class="task-operations">
-          <span class="emoji-btn" title="check task" @click="check_task(task.id)">📖</span>
+          <span class="emoji-btn" title="check task" @click="check_task_info(task)">📖</span>
           <span class="emoji-btn" title="run task" @click="run_task(task.id)">▶️</span>
           <span class="emoji-btn" title="delete task" @click="delete_selected_task(task.id)">❌</span>
         </p>
@@ -77,7 +78,7 @@ function task_updated(task:TaskInfo){
       <span class="btn" @click="add_new_task">Add</span>
       <span class="btn" @click="refresh_all_tasks">Refresh</span>
     </div>
-    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel" :taskid="selected_task_id" @added="task_added" @updated="task_updated"></TaskInfoModal>
+    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel" :task="selected_task" @added="task_added" @updated="task_updated"></TaskInfoModal>
   </div>
 </template>
 
