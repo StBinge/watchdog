@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref,onMounted ,onActivated} from 'vue'
-import { get_all_tasks,TaskInfo,run_task,delete_task, EmptyTask,auto_update_task_info} from '../task';
+import { get_all_tasks,TaskInfo,run_task,delete_task, EmptyTask,auto_update_task_info,tasks,selected_task} from '../task';
 import TaskInfoModal from './TaskInfoModal.vue';
 
-const selected_task=ref<TaskInfo>(EmptyTask)
-const tasks=ref<TaskInfo[]>([])
+// const selected_task=ref<TaskInfo>(EmptyTask)
+// const tasks=ref<TaskInfo[]>([])
 
 onMounted(async ()=>{
   await refresh_all_tasks()
@@ -42,13 +42,13 @@ async function delete_selected_task(tid:number){
     tasks.value.splice(idx,1)
   } 
 }
-function task_added(task:TaskInfo){
-  tasks.value.push(task)
-}
-function task_updated(task:TaskInfo){
-  const idx=tasks.value.findIndex(item=>item.id==task.id)
-  tasks.value[idx]=task
-}
+// function task_added(task:TaskInfo){
+//   tasks.value.push(task)
+// }
+// function task_updated(task:TaskInfo){
+//   const idx=tasks.value.findIndex(item=>item.id==task.id)
+//   tasks.value[idx]=task
+// }
 </script>
 
 <template>
@@ -78,7 +78,7 @@ function task_updated(task:TaskInfo){
       <span class="btn" @click="add_new_task">Add</span>
       <span class="btn" @click="refresh_all_tasks">Refresh</span>
     </div>
-    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel" :task="selected_task" @added="task_added" @updated="task_updated"></TaskInfoModal>
+    <TaskInfoModal @close="show_info_panel=false" v-if="show_info_panel"></TaskInfoModal>
   </div>
 </template>
 

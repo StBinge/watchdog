@@ -47,7 +47,7 @@ class Database:
         with self as session:
             session.add(new_task)
             session.commit()
-            return new_task
+            return session.query(TaskData).filter_by(id=new_task.id).first()
 
     def get_all_tasks(self) -> list[TaskData]:
         with self as session:

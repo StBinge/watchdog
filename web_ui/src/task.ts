@@ -1,5 +1,7 @@
-import { Ref } from "vue"
+import { Ref,ref } from "vue"
 
+export const tasks=ref<TaskInfo[]>([])
+export const selected_task=ref<TaskInfo|null>()
 
 export enum TaskState{
     Empty='empty',
@@ -18,6 +20,7 @@ export interface TaskInfo{
     result:string
     // error:string
     state:TaskState|string
+    [k:string]:any
 }
 
 export const EmptyTask:TaskInfo={
@@ -82,7 +85,7 @@ export async function add_or_update_task(tid:number,name:string,command:string,c
         headers: {	
             // 'user-agent': 'Mozilla/4.0 MDN Example',
             'content-type': 'application/json'
-          },
+        },
     })
     if (res.ok) {
         return await res.json() as TaskInfo
@@ -99,7 +102,7 @@ export async function run_task(taskid:number) {
     }
     const res= await fetch(api)
     if (res.ok) {
-        alert('Task is running.')
+        console.debug('Task is running.')
         return true
     }else{
         alert('Run task failed!')
@@ -149,7 +152,12 @@ export function auto_update_task_info(tasks:Ref<TaskInfo[]>) {
             console.error('No task matched:',result)
             return
         }
-        tasks.value[idx]=result
+        const old_task=tasks.value[idx]
+        for (const key in old_task) {
+            if (Object.prototype.hasOwnProperty.call(old_task, key)) {
+                old_task[key]=result[key]
+            }
+        }
         console.debug('Task info updated:',result)
     }
     window.onbeforeunload=()=>{
