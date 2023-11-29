@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
+from starlette.websockets import WebSocketDisconnect
 from pydantic import BaseModel
 from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
+import asyncio
+
+from task import Task
 
 class NewTaskItem(BaseModel):
     name:str
@@ -15,13 +19,28 @@ class NewEnvItem(BaseModel):
     value:str
 
 Base_Dir=Path(__file__).parent
-static_dir=Base_Dir/'web_ui/dist'
+static_dir=Base_Dir/'dist'
 
 
 app = FastAPI()
 app.mount('/assets',StaticFiles(directory=static_dir/'assets'),name='assets')
 
-schedule = Schedule(10)
+def task_notifier(task:Task):
+    global ws
+    data=task.info()
+    print('Notify task:',data)
+    if ws:
+        try:
+            t=ws.send_json(data)
+            asyncio.run(t)
+            print('Send task data:',data)
+        except WebSocketDisconnect:
+            print('ws is closed, send msg failed!')
+            ws=None
+    else:
+        print('ws not ready:',ws,ws.state)
+
+schedule = Schedule(task_notifier,60)
 
 
 def stop_schedule():
@@ -64,7 +83,7 @@ async def delete_task(id: int):
 @app.get('/execute')
 async def execute_task(id: int):
     task=schedule.tasks[id]
-    task.execute_sync()
+    task.execute_async()
     return task.info()
 
 @app.post('/env')
@@ -79,6 +98,17 @@ async def get_envs():
 @app.delete('/env')
 async def delete_env(key:str):
     return schedule.remove_env(key)
+
+ws:WebSocket=None
+@app.websocket('/task')
+async def connect_ws(websocket:WebSocket):
+    global ws
+    await websocket.accept()
+    print('ws connected.')
+    ws=websocket
+    while True:
+        data=await websocket.receive_text()
+        print('Receive ws:',data)
 
 if __name__ == '__main__':
     schedule.run()

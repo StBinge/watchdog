@@ -1,5 +1,6 @@
-from task import Task
-from DB import Database
+from typing import Callable
+from task import NotifierType, Task, TaskState
+from DB import Database,TaskData
 import time
 import datetime
 import threading
@@ -9,18 +10,23 @@ db = Database()
 
 
 class Schedule:
-    def __init__(self, interval=60) -> None:
+    def __init__(self,notifier:NotifierType=None, interval=60) -> None:
         self.tasks: dict[int, Task] = {}
         self.interval = interval
         self.thread = None
         self.stopped = False
-        self._load_task()
+        self.notifier=notifier
         self.envs = {}
+        self._load_task()
         self._load_envs()
+
+    def _create_task(self,task:TaskData):
+        self.tasks[task.id] = Task(task.id, task.name, task.cmd, task.cron,self.notifier)
+
 
     def _load_task(self):
         for task in db.get_all_tasks():
-            self.tasks[task.id] = Task(task.id, task.name, task.cmd, task.cron)
+            self._create_task(task)
 
     def _load_envs(self):
         for item in db.get_all_envs():
@@ -30,10 +36,9 @@ class Schedule:
             print('Set Env:', key, val)
 
     def add_task(self, name: str, cmd: str, cron: str):
-        tid = db.add_task(name, cmd, cron)
-        task = Task(tid, name, cmd, cron)
-        self.tasks[tid] = task
-        return task
+        task = db.add_task(name, cmd, cron)
+        self._create_task(task)
+        return self.tasks[task.id]
 
     def update_task(self, tid: int, name, cmd, cron):
         task = db.update_task(tid, name, cmd, cron)
@@ -62,18 +67,17 @@ class Schedule:
         return True
 
     def _run(self):
-        cur_timestamp = time.time()
-        print(f'{datetime.datetime.now()}:running loops...')
-        for task in self.tasks.values():
-            if cur_timestamp > task.next_timestamp:
-                # print('Execute:'+task.cmd_args)
-                task.execute_sync()
-        if self.stopped:
-            return
-        time.sleep(self.interval)
-        if self.stopped:
-            return
-        self._run()
+        while not self.stopped:
+            cur_timestamp = time.time()
+            print(f'{datetime.datetime.now()}:running loops...')
+            for task in self.tasks.values():
+                if cur_timestamp > task.next_timestamp:
+                    # print('Execute:'+task.cmd_args)
+                    task.execute_async()
+
+            time.sleep(self.interval)
+
+
 
     def run(self):
         self.thread = threading.Thread(target=self._run)

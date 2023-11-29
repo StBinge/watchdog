@@ -1,3 +1,15 @@
+import { Ref,ref } from "vue"
+
+export const tasks=ref<TaskInfo[]>([])
+export const selected_task=ref<TaskInfo|null>()
+
+export enum TaskState{
+    Empty='empty',
+    Idle='idle',
+    Running='running',
+    Error='error'
+}
+
 export interface TaskInfo{
     name:string
     id:number
@@ -7,7 +19,8 @@ export interface TaskInfo{
     last_time:string
     result:string
     // error:string
-    state:string
+    state:TaskState|string
+    [k:string]:any
 }
 
 export const EmptyTask:TaskInfo={
@@ -18,7 +31,7 @@ export const EmptyTask:TaskInfo={
     next_time:'',
     last_time:'',
     result:'',
-    state:'',
+    state:TaskState.Empty,
 }
 
 export async function get_task(id:number):Promise<TaskInfo>{
@@ -72,7 +85,7 @@ export async function add_or_update_task(tid:number,name:string,command:string,c
         headers: {	
             // 'user-agent': 'Mozilla/4.0 MDN Example',
             'content-type': 'application/json'
-          },
+        },
     })
     if (res.ok) {
         return await res.json() as TaskInfo
@@ -89,10 +102,12 @@ export async function run_task(taskid:number) {
     }
     const res= await fetch(api)
     if (res.ok) {
-        alert('Task is running.')
+        console.debug('Task is running.')
+        return true
     }else{
         alert('Run task failed!')
         console.error(await res.text())
+        return false
     }
 }
 
@@ -111,5 +126,42 @@ export async function delete_task(tid:number) {
         alert('Delete task failed!')
         console.error(await res.text())
         return false
+    }
+}
+
+// interface ExecuteResult{
+//     id:number,
+//     state:string,
+//     result:string,
+// }
+
+export function auto_update_task_info(tasks:Ref<TaskInfo[]>) {
+    const ws=new WebSocket('ws://localhost:9191/task')
+    ws.onopen=(e)=>{
+        console.debug('ws connected.')
+    }
+    ws.onclose=(e)=>{
+        console.debug('ws closed.')
+        auto_update_task_info(tasks)
+    }
+    ws.onmessage=(e)=>{
+        // console.debug('receive ws data:',e.data)
+        const result=JSON.parse(e.data) as TaskInfo
+        const idx=tasks.value.findIndex(t=>t.id==result.id)
+        if (idx<0) {
+            console.error('No task matched:',result)
+            return
+        }
+        const old_task=tasks.value[idx]
+        for (const key in old_task) {
+            if (Object.prototype.hasOwnProperty.call(old_task, key)) {
+                old_task[key]=result[key]
+            }
+        }
+        console.debug('Task info updated:',result)
+    }
+    window.onbeforeunload=()=>{
+        console.debug('closing ws...')
+        ws.close()
     }
 }

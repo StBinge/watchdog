@@ -4,6 +4,7 @@ import crontab as Crontab
 import subprocess
 import threading
 from enum import Enum
+from typing import Callable
 
 
 class TaskState(Enum):
@@ -17,10 +18,10 @@ class TaskState(Enum):
 #         if task.state==TaskState.Runing:
 #             self.state='running'
 #         else:
-
+NotifierType=Callable[['Task'],None]
 
 class Task:
-    def __init__(self, id: int, name: str, command: str, cron: str) -> None:
+    def __init__(self, id: int, name: str, command: str, cron: str,notifier:NotifierType=None) -> None:
         # self.task_id=int(datetime.datetime().now().timestamp())
         self.id = id
         self.name = name
@@ -32,19 +33,16 @@ class Task:
         self.state = TaskState.Idle
         self.next_timestamp = next(self.crontab.next()).timestamp()
         self.last_timestamp = -1
+        self.notifier=notifier
 
-    # def calc_next_time(self,prev_timestamp:int):
-    #     # cur_time=time.time()
-    #     while True:
-    #         nxt=self.crontab.next.timestamp()
-    #         if nxt<=prev_timestamp:
-    #             continue
 
     def execute_sync(self):
         '''执行任务,并更新下一次运行时间
         '''
         print(f'Executing task[{self.id}]:'+self.command)
         self.state = TaskState.Runing
+        if self.notifier:
+            self.notifier(self)
         stdout, stderr = subprocess.Popen(
             self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True).communicate()
         now=datetime.datetime.now()
@@ -58,13 +56,18 @@ class Task:
         self.state = TaskState.Idle
         if stderr:
             self.result = stderr
+            self.state=TaskState.Error
         else:
             self.result = stdout
         print(f'Task[{self.id}] Executed:\n', str(self.info()))
+        if self.notifier:
+            self.notifier(self)
 
     def execute_async(self):
+        self.state=TaskState.Runing
         thread = threading.Thread(target=self.execute_sync)
         thread.start()
+
 
     def info(self):
         ret = {}

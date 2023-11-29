@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { onMounted, ref,defineEmits, computed } from 'vue';
-import { get_task, add_or_update_task, TaskInfo, EmptyTask } from '../task';
+import {  add_or_update_task, TaskInfo, EmptyTask,run_task,tasks,selected_task} from '../task';
 
-const props = defineProps<{
-  taskid: number
-}>()
+// const props = defineProps<{
+//   task: TaskInfo
+// }>()
 
 const emits=defineEmits<{
   (e:'close'):void,
-  (e:'added',data:TaskInfo):void,
-  (e:'updated',data:TaskInfo):void,
+  // (e:'added',data:TaskInfo):void,
+  // (e:'updated',data:TaskInfo):void,
 }>()
 // const panel=ref<HTMLElement>()
 const task = ref<TaskInfo>(EmptyTask)
 
-const is_new_task=computed(()=>task.value.id==-1)
+
+const is_new_task=computed(()=>!selected_task.value ||selected_task.value.id<0)
 
 async function add_new_task() {
   if (!task.value.name) {
@@ -31,32 +32,46 @@ async function add_new_task() {
   }
   const new_task = await add_or_update_task(-1,task.value.name, task.value.command, task.value.cron)
   if (new_task){
+    // task.value=new_task
+    // emits('added',new_task)
+    tasks.value.push(new_task)
     task.value=new_task
-    emits('added',new_task)
   }
 }
 
 async function update_task() {
   const updated_task=await add_or_update_task(task.value.id,task.value.name,task.value.command,task.value.cron)
   if (updated_task) {
-    task.value=updated_task
-    emits('updated',updated_task)
+    // task.value=updated_task
+    // emits('updated',updated_task)
+    const idx=tasks.value.findIndex(item=>item.id==updated_task.id)
+    tasks.value[idx]=updated_task
+    selected_task.value=updated_task
   }
 }
 
-async function refresh_task_info(){
-  const res=await get_task(task.value.id)
-  if (res){
-    task.value=res
-  }
-}
+// async function refresh_task_info(){
+//   const res=await get_task(task.value.id)
+//   if (res){
+//     task.value=res
+//     emits('updated',res)
+//   }
+// }
 
+// async function run_task_now(id:number){
+//   const res=await run_task(id)
+//   if (res) {
+//     task.value.state=TaskState.Running
+//     emits('updated',task.value)
+//   }
+// }
 
 onMounted(async () => {
-  if (props.taskid >= 0) {
-    task.value = await get_task(props.taskid)
+  if (selected_task.value==null) {
+    task.value=EmptyTask
+  }else{
+    task.value=selected_task.value
   }
-
 })
 
 function close_panel(){
@@ -83,27 +98,27 @@ function close_panel(){
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="next_time" class="label">Next Time</label>
-          <input id="next_time" type="text" class="value" v-model="task.next_time">
+          <span class="value" >{{ task.next_time }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="last_time" class="label">Last Time</label>
-          <input id="last_time" type="text" class="value" v-model="task.last_time">
+          <span class="value" >{{ task.last_time }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="state" class="label">state</label>
-          <input id="state" type="text" class="value" v-model="task.state">
+          <span class="value">{{ task.state }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="result" class="label">Result</label>
-          <textarea id="result" rows="6" class="value" v-bind:value="task.result"></textarea>
+          <pre class="value" >{{ task.result }}</pre>
         </p>
       </div>
 
       <p id="info-panel-footer">
         <span v-if="is_new_task" class="btn" @click="add_new_task">Add</span>
         <span v-else class="btn" @click="update_task">Update</span>
-        <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span>
-        <!-- <span class="btn warning" @click="close_panel">Close</span> -->
+        <!-- <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span> -->
+        <span class="btn" @click="run_task(task.id)">Run</span>
       </p>
       <span class="corner-btn" @click="close_panel">❌</span>
     </div>
@@ -198,6 +213,15 @@ function close_panel(){
   /* border: 0 solid var(--highlight-color); */
   /* border-bottom-width: 1px; */
   border-width: 0;
+}
+pre.value{
+  word-wrap: break-word;
+  /* word-break: break-all; */
+  height: 160px;
+  padding: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow: auto;
 }
 .corner-btn{
   position: absolute;
