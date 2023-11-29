@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 import asyncio
 
-from task import Task, TaskState
+from task import Task
 
 class NewTaskItem(BaseModel):
     name:str
@@ -19,7 +19,7 @@ class NewEnvItem(BaseModel):
     value:str
 
 Base_Dir=Path(__file__).parent
-static_dir=Base_Dir/'web_ui/dist'
+static_dir=Base_Dir/'dist'
 
 
 app = FastAPI()
@@ -40,7 +40,7 @@ def task_notifier(task:Task):
     else:
         print('ws not ready:',ws,ws.state)
 
-schedule = Schedule(task_notifier,30)
+schedule = Schedule(task_notifier,60)
 
 
 def stop_schedule():
