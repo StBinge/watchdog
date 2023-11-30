@@ -5,9 +5,10 @@ from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-import asyncio
-
+import asyncio,io,sys
 from task import Task
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8') #改变标准输出的默认编码
 
 class NewTaskItem(BaseModel):
     name:str
