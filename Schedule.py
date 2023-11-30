@@ -1,4 +1,6 @@
-from typing import Callable
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from sched import scheduler
 from task import NotifierType, Task, TaskState
 from DB import Database,TaskData
 import time
@@ -7,7 +9,7 @@ import threading
 import os
 
 db = Database()
-
+pool=ThreadPoolExecutor()
 
 class Schedule:
     def __init__(self,notifier:NotifierType=None, interval=60) -> None:
@@ -69,7 +71,7 @@ class Schedule:
     def _run(self):
         while not self.stopped:
             cur_timestamp = time.time()
-            print(f'{datetime.datetime.now()}:running loops...')
+            print(f'{datetime.datetime.fromtimestamp(cur_timestamp)}:running loops...')
             for task in self.tasks.values():
                 if cur_timestamp > task.next_timestamp:
                     # print('Execute:'+task.cmd_args)
@@ -77,7 +79,22 @@ class Schedule:
 
             time.sleep(self.interval)
 
+    async def loop(self):
+        while not self.stopped:
+            cur_timestamp = time.time()
+            print(f'{datetime.datetime.fromtimestamp(cur_timestamp)}:running loops...')
+            for task in self.tasks.values():
+                if cur_timestamp > task.next_timestamp:
+                    # print('Execute:'+task.cmd_args)
+                    pool.submit(task.execute_sync)
 
+            await asyncio.sleep(self.interval)
+
+    def start_loop(self):
+        asyncio.run(self.loop())
+
+    def start_loop_async(self):
+        pool.submit(self.start_loop)
 
     def run(self):
         self.thread = threading.Thread(target=self._run)

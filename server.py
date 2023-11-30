@@ -1,11 +1,12 @@
-from fastapi import FastAPI, WebSocket
-from starlette.websockets import WebSocketDisconnect
+from pickle import TRUE
+from fastapi import FastAPI, WebSocket,BackgroundTasks
+from starlette.websockets import WebSocketDisconnect,WebSocketState
 from pydantic import BaseModel
 from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-import asyncio
+import asyncio,time,datetime
 
 from task import Task
 
@@ -27,27 +28,44 @@ app.mount('/assets',StaticFiles(directory=static_dir/'assets'),name='assets')
 
 def task_notifier(task:Task):
     global ws
-    data=task.info()
-    print('Notify task:',data)
-    if ws:
+    print(f'Notify task[{task.name}]')
+    if ws and ws.application_state==WebSocketState.CONNECTED:
+        data=task.info()
         try:
             t=ws.send_json(data)
             asyncio.run(t)
-            print('Send task data:',data)
+            print(f'Send task[{task.name}] data')
         except WebSocketDisconnect:
-            print('ws is closed, send msg failed!')
+            print('ws is closed, send task data failed!')
             ws=None
     else:
-        print('ws not ready:',ws,ws.state)
+        print('ws not ready:',ws,ws.application_state.name)
 
 schedule = Schedule(task_notifier,60)
 
+# backgroud=BackgroundTasks()
 
-def stop_schedule():
+# def execute(tasks:list[Task]):
+#     cur_timestamp = time.time()
+#     print(f'{datetime.datetime.now()}:Executing loops...')
+#     for task in tasks:
+#         if cur_timestamp > task.next_timestamp:
+#             # print('Execute:'+task.cmd_args)
+#             task.execute_async()
+
+# async def start_schedule():
+#     while not schedule.stopped:
+#         backgroud.add_task(execute,args=(schedule.tasks.values(),))
+#         await asyncio.sleep(schedule.interval)
+
+
+async def stop_schedule():
     print('Stopping schedule...')
     schedule.stop()
+    # schedule.stopped=True
 
 
+# app.add_event_handler('startup', start_schedule)
 app.add_event_handler('shutdown', stop_schedule)
 
 @app.get('/')
@@ -107,10 +125,15 @@ async def connect_ws(websocket:WebSocket):
     print('ws connected.')
     ws=websocket
     while True:
-        data=await websocket.receive_text()
-        print('Receive ws:',data)
+        try:
+            await ws.receive()
+        except:
+            await ws.close()
+            print('ws is closed.')
+            ws=None
 
 if __name__ == '__main__':
-    schedule.run()
+    # schedule.run()
+    schedule.start_loop_async()
     import uvicorn
     uvicorn.run(app, host='0.0.0.0', port=9191)
