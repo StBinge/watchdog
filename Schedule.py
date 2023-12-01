@@ -102,5 +102,5 @@ class Schedule:
 
     def stop(self):
         self.stopped = True
-        self.thread.join()
+        # self.thread.join()
         print('Schedule Stopped!')

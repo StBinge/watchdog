@@ -36,6 +36,7 @@ async function add_new_task() {
     // emits('added',new_task)
     tasks.value.push(new_task)
     task.value=new_task
+    selected_task.value=new_task
   }
 }
 
