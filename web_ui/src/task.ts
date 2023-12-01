@@ -137,10 +137,10 @@ export async function delete_task(tid:number) {
 
 export function auto_update_task_info(tasks:Ref<TaskInfo[]>) {
     const ws=new WebSocket('ws://localhost:9191/task')
-    ws.onopen=(e)=>{
+    ws.onopen=()=>{
         console.debug('ws connected.')
     }
-    ws.onclose=(e)=>{
+    ws.onclose=()=>{
         console.debug('ws closed.')
         auto_update_task_info(tasks)
     }

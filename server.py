@@ -6,9 +6,11 @@ from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-import asyncio,time,datetime
+import asyncio,time,datetime,io,sys
 
 from task import Task
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8') #改变标准输出的默认编码
 
 class NewTaskItem(BaseModel):
     name:str
@@ -137,4 +139,4 @@ if __name__ == '__main__':
     # schedule.run()
     schedule.start_loop_async()
     import uvicorn
-    uvicorn.run(app, host='0.0.0.0', port=9191)
+    uvicorn.run(app, host='127.0.0.1', port=9191)
