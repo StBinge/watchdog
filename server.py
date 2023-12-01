@@ -126,7 +126,8 @@ async def connect_ws(websocket:WebSocket):
     ws=websocket
     while True:
         try:
-            await ws.receive()
+            # await ws.receive()
+            await asyncio.sleep(10)
         except:
             await ws.close()
             print('ws is closed.')
