@@ -130,6 +130,8 @@ async def connect_ws(websocket:WebSocket):
         try:
             # await ws.receive()
             await asyncio.sleep(10)
+            if not ws or ws.application_state!=WebSocketState.CONNECTED:
+                return
         except:
             await ws.close()
             print('ws is closed.')
