@@ -1,78 +1,82 @@
 <script setup lang="ts">
 import { onMounted, ref,defineEmits, computed } from 'vue';
-import {  add_or_update_task, TaskInfo, EmptyTask,run_task,tasks,selected_task} from '../task';
+import {  add_or_update_task,run_task,tasks,selected_task} from '../task';
 
 // const props = defineProps<{
 //   task: TaskInfo
 // }>()
+interface TaskFields{
+  name:string
+  cron:string
+  command:string
+}
 
+const empty_task_fields:TaskFields={
+  name:'',
+  cron:'',
+  command:'',
+}
 const emits=defineEmits<{
   (e:'close'):void,
   // (e:'added',data:TaskInfo):void,
   // (e:'updated',data:TaskInfo):void,
 }>()
 // const panel=ref<HTMLElement>()
-const task = ref<TaskInfo>(EmptyTask)
+// const task = ref<TaskInfo>(create_empty_task())
+const task_fields=ref<TaskFields>(empty_task_fields)
 
 
 const is_new_task=computed(()=>!selected_task.value ||selected_task.value.id<0)
 
-async function add_new_task() {
-  if (!task.value.name) {
+function check_task_fields(){
+  if (!task_fields.value.name) {
     alert('Task name can not be empty!')
-    return
+    return false
   }
-  if (!task.value.command){
+  if (!task_fields.value.command){
     alert("Task command can not be empty!")
-    return
+    return false
   }
-  if (task.value.cron.trim().split(' ').length!=5){
+  if (task_fields.value.cron.trim().split(' ').length!=5){
     alert('Task Cron can not be empty or invalid formation!')
+    return false
+  }
+  return true
+}
+
+async function add_new_task() {
+  if (!check_task_fields()) {
     return
   }
-  const new_task = await add_or_update_task(-1,task.value.name, task.value.command, task.value.cron)
+  const new_task = await add_or_update_task(-1,task_fields.value.name, task_fields.value.command, task_fields.value.cron)
   if (new_task){
-    // task.value=new_task
-    // emits('added',new_task)
     tasks.value.push(new_task)
-    task.value=new_task
     selected_task.value=new_task
   }
 }
 
 async function update_task() {
-  const updated_task=await add_or_update_task(task.value.id,task.value.name,task.value.command,task.value.cron)
+  if (!check_task_fields()) {
+    return 
+  }
+
+  const updated_task=await add_or_update_task(selected_task.value!.id,task_fields.value.name,task_fields.value.command,task_fields.value.cron)
   if (updated_task) {
-    // task.value=updated_task
-    // emits('updated',updated_task)
     const idx=tasks.value.findIndex(item=>item.id==updated_task.id)
     tasks.value[idx]=updated_task
     selected_task.value=updated_task
   }
 }
 
-// async function refresh_task_info(){
-//   const res=await get_task(task.value.id)
-//   if (res){
-//     task.value=res
-//     emits('updated',res)
-//   }
-// }
+function reset_task_fields(){
+  task_fields.value.name=selected_task.value?.name||""
+  task_fields.value.cron=selected_task.value?.cron||""
+  task_fields.value.command=selected_task.value?.command||''
+}
 
-// async function run_task_now(id:number){
-//   const res=await run_task(id)
-//   if (res) {
-//     task.value.state=TaskState.Running
-//     emits('updated',task.value)
-//   }
-// }
 
-onMounted(async () => {
-  if (selected_task.value==null) {
-    task.value=EmptyTask
-  }else{
-    task.value=selected_task.value
-  }
+onMounted(() => {
+  reset_task_fields()
 })
 
 function close_panel(){
@@ -87,31 +91,31 @@ function close_panel(){
       <div id="info-panel-content">
         <p class="info-panel-row">
           <label for="name" class="label">Task Name</label>
-          <input id="name" type="text" class="value" v-model="task.name">
+          <input id="name" type="text" class="value" v-model="task_fields.name">
         </p>
         <p class="info-panel-row">
           <label for="command" class="label">Command</label>
-          <input id="command" type="text" class="value" v-model="task.command">
+          <input id="command" type="text" class="value" v-model="task_fields.command">
         </p>
         <p class="info-panel-row">
           <label for="cron" class="label">Cron</label>
-          <input id="cron" type="text" class="value" v-model="task.cron">
+          <input id="cron" type="text" class="value" v-model="task_fields.cron" placeholder="please enter valid cron formation">
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="next_time" class="label">Next Time</label>
-          <span class="value" >{{ task.next_time }}</span>
+          <span class="value" >{{ selected_task?.next_time||'' }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="last_time" class="label">Last Time</label>
-          <span class="value" >{{ task.last_time }}</span>
+          <span class="value" >{{ selected_task?.last_time||'' }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="state" class="label">state</label>
-          <span class="value">{{ task.state }}</span>
+          <span class="value">{{ selected_task?.state||'' }}</span>
         </p>
         <p class="info-panel-row" :class="{disabled:is_new_task}">
           <label for="result" class="label">Result</label>
-          <pre class="value" >{{ task.result }}</pre>
+          <pre class="value" >{{ selected_task?.result||'' }}</pre>
         </p>
       </div>
 
@@ -119,7 +123,8 @@ function close_panel(){
         <span v-if="is_new_task" class="btn" @click="add_new_task">Add</span>
         <span v-else class="btn" @click="update_task">Update</span>
         <!-- <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span> -->
-        <span class="btn" @click="run_task(task.id)" v-if="!is_new_task">Run</span>
+        <span class="btn" @click="reset_task_fields()">Reset</span>
+        <span class="btn" @click="run_task(selected_task!.id)" v-if="!is_new_task">Run</span>
       </p>
       <span class="corner-btn" @click="close_panel">❌</span>
     </div>
@@ -214,6 +219,7 @@ function close_panel(){
   /* border: 0 solid var(--highlight-color); */
   /* border-bottom-width: 1px; */
   border-width: 0;
+  color:var(--item-font-color);
 }
 pre.value{
   word-wrap: break-word;

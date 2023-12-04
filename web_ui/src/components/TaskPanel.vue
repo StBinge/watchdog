@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref,onMounted ,onActivated} from 'vue'
-import { get_all_tasks,TaskInfo,run_task,delete_task, EmptyTask,auto_update_task_info,tasks,selected_task} from '../task';
+import { get_all_tasks,TaskInfo,run_task,delete_task, create_empty_task,auto_update_task_info,tasks,selected_task} from '../task';
 import TaskInfoModal from './TaskInfoModal.vue';
 
 // const selected_task=ref<TaskInfo>(EmptyTask)
@@ -16,7 +16,7 @@ onActivated(async()=>{
 const show_info_panel=ref(false)
 
 function add_new_task(){
-  selected_task.value=EmptyTask
+  selected_task.value=create_empty_task()
   show_info_panel.value=true
 }
 
@@ -27,7 +27,7 @@ async function refresh_all_tasks() {
   }
 }
 
-async function check_task_info(task:TaskInfo){
+async function show_task_info(task:TaskInfo){
   // console.debug(taskid)
   selected_task.value=task
   show_info_panel.value=true
@@ -64,11 +64,11 @@ async function delete_selected_task(tid:number){
       <h1 v-if="tasks.length==0" class="empty-content">No Data</h1>
       <div class="task-row" v-for="task in tasks">
         <span class="task-value" :title="task.name">{{ task.name }}</span>
-        <span class="task-value">{{ task.state }}</span>
+        <span class="task-value" :class="{'error-state':task.state.toLowerCase()=='error'}">{{ task.state }}</span>
         <span class="task-value">{{ task.next_time }}</span>
         <span class="task-value">{{ task.last_time }}</span>
         <p class="task-operations">
-          <span class="emoji-btn" title="check task" @click="check_task_info(task)">📖</span>
+          <span class="emoji-btn" title="check task" @click="show_task_info(task)">📖</span>
           <span class="emoji-btn" title="run task" @click="run_task(task.id)">▶️</span>
           <span class="emoji-btn" title="delete task" @click="delete_selected_task(task.id)">❌</span>
         </p>
@@ -140,6 +140,7 @@ async function delete_selected_task(tid:number){
 }
 .task-value{
   text-align: center;
+  color:var(--item-font-color)
 }
 .task-value:not(last-child){
   border-right: 1px solid var(--highlight-color);
@@ -150,5 +151,9 @@ async function delete_selected_task(tid:number){
 }
 .empty-content{
   text-align: center;
+}
+.error-state{
+  background-color:var(--error-color);
+  color:var(--item-background);
 }
 </style>

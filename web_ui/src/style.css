@@ -11,6 +11,8 @@ body{
   height:100%;
   --highlight-color:dodgerblue;
   --item-background:#111;
+  --error-color:red;
+  --item-font-color:aliceblue;
 }
 
 .btn{

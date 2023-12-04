@@ -82,12 +82,12 @@ async def add_or_update_task(id:int=-1,item:NewTaskItem=None):
     if id<0:
         ok,data= schedule.add_task(item.name,item.command, item.cron)
     else:
-        ok,data=schedule.update_task(id,name=item.name,cmd=item.command,cron=item.cron).info()
+        ok,data=schedule.update_task(id,name=item.name,cmd=item.command,cron=item.cron)
 
     if ok:
-        return data
+        return data.info()
     else:
-        return PlainTextResponse(content=data)
+        return PlainTextResponse(content=data,status_code=400)
     
 @app.get('/task')
 async def get_task_info(id: int):
