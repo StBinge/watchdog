@@ -1,16 +1,13 @@
-from pickle import TRUE
-from fastapi import FastAPI, WebSocket,BackgroundTasks
+from fastapi import FastAPI, WebSocket
 from starlette.websockets import WebSocketDisconnect,WebSocketState
 from pydantic import BaseModel
 from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse,PlainTextResponse
 from pathlib import Path
-import asyncio,time,datetime,io,sys
-
+import asyncio
 from task import Task
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8') #改变标准输出的默认编码
 
 class NewTaskItem(BaseModel):
     name:str
@@ -79,17 +76,19 @@ async def index():
 async def get_all_tasks():
     return [t.info() for t in schedule.tasks.values()]
 
-# @app.post('/task')
-# async def add_task(item: NewTaskItem):
-#     task = schedule.add_task(item.name,item.command, item.cron)
-#     return task.info()
 
 @app.post('/task')
 async def add_or_update_task(id:int=-1,item:NewTaskItem=None):
     if id<0:
-        return schedule.add_task(item.name,item.command, item.cron).info()
-    return schedule.update_task(id,name=item.name,cmd=item.command,cron=item.cron).info()
+        ok,data= schedule.add_task(item.name,item.command, item.cron)
+    else:
+        ok,data=schedule.update_task(id,name=item.name,cmd=item.command,cron=item.cron).info()
 
+    if ok:
+        return data
+    else:
+        return PlainTextResponse(content=data)
+    
 @app.get('/task')
 async def get_task_info(id: int):
     return schedule.tasks[id].info()

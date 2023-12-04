@@ -8,7 +8,7 @@ from typing import Callable
 
 
 class TaskState(Enum):
-    Idle = 1
+    Wait = 1
     Runing = 2
     Completed = 3
     Error = 4
@@ -30,7 +30,7 @@ class Task:
         self.crontab = Crontab.parse(cron)
         self.result = ''
         # self.error=''
-        self.state = TaskState.Idle
+        self.state = TaskState.Wait
         self.next_timestamp = next(self.crontab.next()).timestamp()
         self.last_timestamp = -1
         self.notifier=notifier
@@ -53,7 +53,7 @@ class Task:
             self.next_timestamp=time.timestamp()
             break
         # self.next_timestamp=str(datetime.datetime.fromtimestamp(self.next_run_timestamp))
-        self.state = TaskState.Idle
+        self.state = TaskState.Wait
         if stderr:
             self.result = stderr
             self.state=TaskState.Error

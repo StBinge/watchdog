@@ -1,12 +1,12 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from sched import scheduler
-from task import NotifierType, Task, TaskState
+from task import NotifierType, Task
 from DB import Database,TaskData
 import time
 import datetime
 import threading
 import os
+from crontab import parse
 
 db = Database()
 pool=ThreadPoolExecutor()
@@ -38,15 +38,26 @@ class Schedule:
             print('Set Env:', key, val)
 
     def add_task(self, name: str, cmd: str, cron: str):
+        try:
+            parse(cron)
+        except:
+            return [False,'Invalid cron formation!']
         task = db.add_task(name, cmd, cron)
         self._create_task(task)
-        return self.tasks[task.id]
+        return [True,self.tasks[task.id]]
 
     def update_task(self, tid: int, name, cmd, cron):
-        task = db.update_task(tid, name, cmd, cron)
-        if task:
-            self.tasks[tid] = Task(tid, name, cmd, cron)
-        return self.tasks[tid]
+        try:
+            parse(cron)
+        except:
+            return [False,'Invalid cron formation!']
+        try:
+            task = db.update_task(tid, name, cmd, cron)
+            if task:
+                self.tasks[tid] = Task(tid, name, cmd, cron)
+            return [True,self.tasks[tid]]
+        except Exception as e:
+            return [False,str(e)]
 
     def remove_task(self, tid: int):
         db.delete_task(tid)

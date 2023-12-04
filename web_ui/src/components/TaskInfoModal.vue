@@ -119,7 +119,7 @@ function close_panel(){
         <span v-if="is_new_task" class="btn" @click="add_new_task">Add</span>
         <span v-else class="btn" @click="update_task">Update</span>
         <!-- <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span> -->
-        <span class="btn" @click="run_task(task.id)">Run</span>
+        <span class="btn" @click="run_task(task.id)" v-if="!is_new_task">Run</span>
       </p>
       <span class="corner-btn" @click="close_panel">❌</span>
     </div>
