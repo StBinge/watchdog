@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from task import NotifierType, Task
+from task import NotifierType, Task,TaskState
 from DB import Database,TaskData
 import time
 import datetime
@@ -84,7 +84,7 @@ class Schedule:
             cur_timestamp = time.time()
             print(f'{datetime.datetime.fromtimestamp(cur_timestamp)}:running loops...')
             for task in self.tasks.values():
-                if cur_timestamp > task.next_timestamp:
+                if cur_timestamp > task.next_timestamp and task.state!=TaskState.Runing:
                     # print('Execute:'+task.cmd_args)
                     task.execute_async()
 
