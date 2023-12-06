@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse,PlainTextResponse
 from pathlib import Path
 import asyncio
-from task import Task
+from task import Task,TaskState
 
 
 class NewTaskItem(BaseModel):
@@ -38,7 +38,7 @@ def task_notifier(task:Task):
             print('ws is closed, send task data failed!')
             ws=None
     else:
-        print('ws not ready:',ws,ws.application_state.name)
+        print('ws not ready!')
 
 schedule = Schedule(task_notifier,60)
 
@@ -102,6 +102,8 @@ async def delete_task(id: int):
 @app.get('/execute')
 async def execute_task(id: int):
     task=schedule.tasks[id]
+    if task.state==TaskState.Running:
+        return task.info()
     task.execute_async()
     return task.info()
 
@@ -137,7 +139,8 @@ async def connect_ws(websocket:WebSocket):
             ws=None
 
 if __name__ == '__main__':
-    # schedule.run()
-    schedule.start_loop_async()
+    schedule.run_async()
+    # schedule.start_loop_async()
+
     import uvicorn
     uvicorn.run(app, host='127.0.0.1', port=9191)

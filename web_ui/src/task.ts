@@ -98,15 +98,23 @@ export async function add_or_update_task(tid: number, name: string, command: str
 }
 
 export async function run_task(taskid: number) {
+    const idx=tasks.value.findIndex(t=>t.id==taskid)
+    console.debug(tasks.value[idx].state.toLowerCase())
+    if (tasks.value[idx].state.toLowerCase()=='running') {
+        alert('Task has been running already!')
+        return
+    }
+
     let api = '/execute?id=' + taskid
     if (import.meta.env.DEV) {
         api = '/api' + api
     }
     const res = await fetch(api)
     if (res.ok) {
-        console.debug('Task is running.')
-        const idx=tasks.value.findIndex(t=>t.id==taskid)
-        tasks.value[idx].result=''
+        // console.debug('Task is running.')
+        const task=await res.json()
+        alert(`Task[${task.name}] is running now!`)
+        update_task_info(task.id,task)
         return true
     } else {
         alert('Run task failed!')
@@ -133,11 +141,15 @@ export async function delete_task(tid: number) {
     }
 }
 
-// interface ExecuteResult{
-//     id:number,
-//     state:string,
-//     result:string,
-// }
+export function update_task_info(task_id:number,info:TaskInfo){
+    const idx=tasks.value.findIndex(t=>t.id==task_id)
+    const old_task=tasks.value[idx]
+    for (const key in info) {
+        if (Object.prototype.hasOwnProperty.call(info, key)) {
+            old_task[key]=info[key]
+        }
+    }
+}
 
 export function auto_update_task_info(tasks: Ref<TaskInfo[]>) {
     const ws = new WebSocket('ws://localhost:9191/task')
@@ -151,17 +163,18 @@ export function auto_update_task_info(tasks: Ref<TaskInfo[]>) {
     ws.onmessage = (e) => {
         // console.debug('receive ws data:',e.data)
         const result = JSON.parse(e.data) as TaskInfo
-        const idx = tasks.value.findIndex(t => t.id == result.id)
-        if (idx < 0) {
-            console.error('No task matched:', result)
-            return
-        }
-        const old_task = tasks.value[idx]
-        for (const key in old_task) {
-            if (Object.prototype.hasOwnProperty.call(old_task, key)) {
-                old_task[key] = result[key]
-            }
-        }
+        // const idx = tasks.value.findIndex(t => t.id == result.id)
+        // if (idx < 0) {
+        //     console.error('No task matched:', result)
+        //     return
+        // }
+        // const old_task = tasks.value[idx]
+        // for (const key in old_task) {
+        //     if (Object.prototype.hasOwnProperty.call(old_task, key)) {
+        //         old_task[key] = result[key]
+        //     }
+        // }
+        update_task_info(result.id,result)
         console.debug('Task info updated:', result)
     }
     window.onbeforeunload = () => {

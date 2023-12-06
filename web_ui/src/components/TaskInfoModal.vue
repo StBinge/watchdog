@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref,defineEmits, computed } from 'vue';
-import {  add_or_update_task,run_task,tasks,selected_task} from '../task';
+import {  add_or_update_task,run_task,tasks,selected_task,update_task_info} from '../task';
 
 // const props = defineProps<{
 //   task: TaskInfo
@@ -62,9 +62,10 @@ async function update_task() {
 
   const updated_task=await add_or_update_task(selected_task.value!.id,task_fields.value.name,task_fields.value.command,task_fields.value.cron)
   if (updated_task) {
-    const idx=tasks.value.findIndex(item=>item.id==updated_task.id)
-    tasks.value[idx]=updated_task
-    selected_task.value=updated_task
+    // const idx=tasks.value.findIndex(item=>item.id==updated_task.id)
+    // tasks.value[idx]=updated_task
+    // selected_task.value=updated_task
+    update_task_info(selected_task.value!.id,updated_task)
   }
 }
 
@@ -74,6 +75,16 @@ function reset_task_fields(){
   task_fields.value.command=selected_task.value?.command||''
 }
 
+// const can_run=computed(()=>{
+//   return !is_new_task && selected_task.value?.state.toLowerCase()!='running'
+// })
+// async function execute_task() {
+//   if (selected_task.value?.state.toLowerCase()=='running') {
+//     alert(`Task[${selected_task.value!.name}] has been running already!`)
+//     return
+//   }
+//   run_task(selected_task.value!.id)
+// }
 
 onMounted(() => {
   reset_task_fields()
@@ -124,7 +135,7 @@ function close_panel(){
         <span v-else class="btn" @click="update_task">Update</span>
         <!-- <span v-if="!is_new_task" class="btn" @click="refresh_task_info">Refresh</span> -->
         <span class="btn" @click="reset_task_fields()">Reset</span>
-        <span class="btn" @click="run_task(selected_task!.id)" v-if="!is_new_task">Run</span>
+        <span class="btn" @click="run_task(selected_task!.id)" v-if="!is_new_task" >Run</span>
       </p>
       <span class="corner-btn" @click="close_panel">❌</span>
     </div>

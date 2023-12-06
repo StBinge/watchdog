@@ -9,19 +9,21 @@ from typing import Callable
 
 class TaskState(Enum):
     Wait = 1
-    Runing = 2
+    Running = 2
     Completed = 3
     Error = 4
+
 
 # class TaskInfo:
 #     def __init__(self,task:'Task') -> None:
 #         if task.state==TaskState.Runing:
 #             self.state='running'
 #         else:
-NotifierType=Callable[['Task'],None]
+NotifierType = Callable[['Task'], None]
+
 
 class Task:
-    def __init__(self, id: int, name: str, command: str, cron: str,notifier:NotifierType=None) -> None:
+    def __init__(self, id: int, name: str, command: str, cron: str, notifier: NotifierType = None) -> None:
         # self.task_id=int(datetime.datetime().now().timestamp())
         self.id = id
         self.name = name
@@ -33,41 +35,41 @@ class Task:
         self.state = TaskState.Wait
         self.next_timestamp = next(self.crontab.next()).timestamp()
         self.last_timestamp = -1
-        self.notifier=notifier
-
+        self.notifier = notifier
 
     def execute_sync(self):
         '''执行任务,并更新下一次运行时间
         '''
-        print(f'Executing task[{self.id}]:'+self.command)
-        self.state = TaskState.Runing
+        print(f'Begin Executing task[{self.name}]:'+self.command)
+        self.state = TaskState.Running
         if self.notifier:
             self.notifier(self)
         stdout, stderr = subprocess.Popen(
             self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True).communicate()
-        now=datetime.datetime.now()
+        now = datetime.datetime.now()
         self.last_timestamp = now.timestamp()
         for time in self.crontab.next():
-            if time.timestamp()<self.last_timestamp:
+            if time.timestamp() < self.last_timestamp:
                 continue
-            self.next_timestamp=time.timestamp()
+            self.next_timestamp = time.timestamp()
             break
         # self.next_timestamp=str(datetime.datetime.fromtimestamp(self.next_run_timestamp))
         self.state = TaskState.Wait
         if stderr:
             self.result = stderr
-            self.state=TaskState.Error
+            self.state = TaskState.Error
         else:
             self.result = stdout
-        print(f'Task[{self.id}] Executed:\n', str(self.info()))
+        print(f'Task[{self.name}] Executed End:\n', str(self.info()))
         if self.notifier:
             self.notifier(self)
+        else:
+            print("Notify failed: Notifier not ready!")
 
     def execute_async(self):
-        self.state=TaskState.Runing
+        self.state = TaskState.Running
         thread = threading.Thread(target=self.execute_sync)
         thread.start()
-
 
     def info(self):
         ret = {}
