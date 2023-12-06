@@ -92,7 +92,7 @@ class Schedule:
 
 
     def run_sync(self):
-        
+        time.sleep(1)
         while not self.stopped:
             self.check_tasks()
             time.sleep(self.interval)

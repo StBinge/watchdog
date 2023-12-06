@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse,PlainTextResponse
 from pathlib import Path
 import asyncio
-from task import Task
+from task import Task,TaskState
 
 
 class NewTaskItem(BaseModel):
@@ -40,7 +40,7 @@ def task_notifier(task:Task):
     else:
         print('ws not ready!')
 
-schedule = Schedule(task_notifier,5)
+schedule = Schedule(task_notifier,60)
 
 # backgroud=BackgroundTasks()
 
@@ -102,6 +102,8 @@ async def delete_task(id: int):
 @app.get('/execute')
 async def execute_task(id: int):
     task=schedule.tasks[id]
+    if task.state==TaskState.Running:
+        return task.info()
     task.execute_async()
     return task.info()
 
