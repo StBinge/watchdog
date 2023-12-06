@@ -38,9 +38,9 @@ def task_notifier(task:Task):
             print('ws is closed, send task data failed!')
             ws=None
     else:
-        print('ws not ready:',ws,ws.application_state.name)
+        print('ws not ready!')
 
-schedule = Schedule(task_notifier,60)
+schedule = Schedule(task_notifier,5)
 
 # backgroud=BackgroundTasks()
 
@@ -137,7 +137,8 @@ async def connect_ws(websocket:WebSocket):
             ws=None
 
 if __name__ == '__main__':
-    # schedule.run()
-    schedule.start_loop_async()
+    schedule.run_async()
+    # schedule.start_loop_async()
+
     import uvicorn
     uvicorn.run(app, host='127.0.0.1', port=9191)
