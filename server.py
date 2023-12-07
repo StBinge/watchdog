@@ -26,12 +26,13 @@ static_dir=Base_Dir/'dist'
 app = FastAPI()
 app.mount('/assets',StaticFiles(directory=static_dir/'assets'),name='assets')
 
-NotifyQueue:list[Task]=[]
+# NotifyQueue:list[Task]=[]
+TaskSet:set[int]=set()
 QueueLock=Lock()
 
 def task_notifier(task:Task):
     with QueueLock:
-        NotifyQueue.append(task.id)
+        TaskSet.add(task.id)
 
 schedule = Schedule(task_notifier,60)
 
@@ -52,7 +53,7 @@ async def index():
 @app.get('/tasks')
 async def get_all_tasks():
     with QueueLock:
-        NotifyQueue.clear()
+        TaskSet.clear()
     return [t.info() for t in schedule.tasks.values()]
 
 
@@ -106,8 +107,8 @@ async def connect_ws(websocket:WebSocket):
     print('ws connected.')
     while True:
         with QueueLock:
-            task_ids=set(NotifyQueue)
-            NotifyQueue.clear()
+            task_ids=list(TaskSet)
+            TaskSet.clear()
         for tid in task_ids:
             task=schedule.tasks[tid]
             print(f'Send Task{task.name} Data')
