@@ -1,5 +1,4 @@
 from fastapi import FastAPI, WebSocket
-from starlette.websockets import WebSocketDisconnect,WebSocketState
 from pydantic import BaseModel
 from Schedule import Schedule
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +6,8 @@ from fastapi.responses import FileResponse,PlainTextResponse
 from pathlib import Path
 import asyncio
 from task import Task,TaskState
+from threading import Lock
+import json
 
 
 class NewTaskItem(BaseModel):
@@ -25,38 +26,14 @@ static_dir=Base_Dir/'dist'
 app = FastAPI()
 app.mount('/assets',StaticFiles(directory=static_dir/'assets'),name='assets')
 
+NotifyQueue:list[Task]=[]
+QueueLock=Lock()
+
 def task_notifier(task:Task):
-    global ws
-    print(f'Notify task[{task.name}]')
-    if ws and ws.application_state==WebSocketState.CONNECTED:
-        data=task.info()
-        try:
-            t=ws.send_json(data)
-            asyncio.run(t)
-            print(f'Send task[{task.name}] data')
-        except WebSocketDisconnect:
-            print('ws is closed, send task data failed!')
-            ws=None
-    else:
-        print('ws not ready!')
+    with QueueLock:
+        NotifyQueue.append(task.id)
 
 schedule = Schedule(task_notifier,60)
-
-# backgroud=BackgroundTasks()
-
-# def execute(tasks:list[Task]):
-#     cur_timestamp = time.time()
-#     print(f'{datetime.datetime.now()}:Executing loops...')
-#     for task in tasks:
-#         if cur_timestamp > task.next_timestamp:
-#             # print('Execute:'+task.cmd_args)
-#             task.execute_async()
-
-# async def start_schedule():
-#     while not schedule.stopped:
-#         backgroud.add_task(execute,args=(schedule.tasks.values(),))
-#         await asyncio.sleep(schedule.interval)
-
 
 async def stop_schedule():
     print('Stopping schedule...')
@@ -74,6 +51,8 @@ async def index():
 
 @app.get('/tasks')
 async def get_all_tasks():
+    with QueueLock:
+        NotifyQueue.clear()
     return [t.info() for t in schedule.tasks.values()]
 
 
@@ -120,23 +99,22 @@ async def get_envs():
 async def delete_env(key:str):
     return schedule.remove_env(key)
 
-ws:WebSocket=None
+
 @app.websocket('/task')
 async def connect_ws(websocket:WebSocket):
-    global ws
     await websocket.accept()
     print('ws connected.')
-    ws=websocket
     while True:
-        try:
-            # await ws.receive()
-            await asyncio.sleep(10)
-            if not ws or ws.application_state!=WebSocketState.CONNECTED:
-                return
-        except:
-            await ws.close()
-            print('ws is closed.')
-            ws=None
+        with QueueLock:
+            task_ids=set(NotifyQueue)
+            NotifyQueue.clear()
+        for tid in task_ids:
+            task=schedule.tasks[tid]
+            print(f'Send Task{task.name} Data')
+            await websocket.send_text(json.dumps(task.info()))
+        
+        await asyncio.sleep(1)
+        
 
 if __name__ == '__main__':
     schedule.run_async()
