@@ -45,7 +45,7 @@ class Task:
         if self.notifier:
             self.notifier(self)
         stdout, stderr = subprocess.Popen(
-            self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True).communicate()
+            self.command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True,encoding='utf8').communicate()
         now = datetime.datetime.now()
         self.last_timestamp = now.timestamp()
         for time in self.crontab.next():
