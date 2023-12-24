@@ -34,7 +34,7 @@ def task_notifier(task:Task):
     with QueueLock:
         TaskSet.add(task.id)
 
-schedule = Schedule(task_notifier,60)
+schedule = Schedule(task_notifier,60*60)
 
 async def stop_schedule():
     print('Stopping schedule...')
